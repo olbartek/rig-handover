@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { countStatuses } from '../src/digest/counts.js';
 import { createApp } from '../src/app.js';
 
 const config = { adapter: 'shim', installed: '2026-10-29T14:06:00+01:00', beatEverySeconds: 60, runsDir: 'runs' };
@@ -11,6 +12,19 @@ describe('status board', () => {
     expect(res.status).toBe(200);
     expect(html).toContain('TEST-MARKER');
     expect(html).toContain('2026-10-28');
+  });
+
+  it('links each night to its digest with its ok / retry / fail counts', async () => {
+    const html = await (await createApp(config).request('/')).text();
+    expect(html).toContain('href="/digest/2026-10-28"');
+    expect(html).toContain('href="/digest/2026-10-27"');
+    expect(html).toContain('10 ok · 4 retry · 1 fail');
+    expect(html.indexOf('2026-10-28')).toBeLessThan(html.indexOf('href="/digest/2026-10-27"'));
+  });
+
+  it('counts null for an unreadable night', () => {
+    expect(countStatuses('runs', '2099-01-01')).toBeNull();
+    expect(countStatuses('runs', '2026-10-27')).toEqual({ ok: 7, retry: 0, fail: 0 });
   });
 
   it('health answers with the lane id', async () => {
